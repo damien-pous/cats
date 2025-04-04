@@ -1,0 +1,9 @@
+.*.aux
+*Makefile.coq*
+CoqMakefile*
+.*.d
+*.vo*
+*.glob
+.vscode
+_opam
+*.tar.bz2
