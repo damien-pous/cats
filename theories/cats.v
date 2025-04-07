@@ -69,7 +69,8 @@ HB.structure Definition ObjConcreteQuiver V := { C of Quiver V C & Concrete C }.
     #[canonical=no] fn : forall A B: Q, (A ~> B) -> A -> B;
   }.
 #[short(type="funconcretequiver")]
-HB.structure Definition FunConcreteQuiver V := { C of IsFunConcreteQuiver V C & Quiver V C & Concrete C }.
+HB.structure Definition FunConcreteQuiver V :=
+  { C of IsFunConcreteQuiver V C & Quiver V C & Concrete C }.
 Arguments fn {_ _ _ _}.
 Coercion fn: el >-> Funclass.
 
@@ -78,7 +79,8 @@ Coercion fn: el >-> Funclass.
     #[canonical=no] rl : forall A B: Q, (A ~> B) -> A -> B -> Type;
   }.
 #[short(type="relconcretequiver")]
-HB.structure Definition RelConcreteQuiver V := { C of IsRelConcreteQuiver V C & Quiver V C & Concrete C }.
+HB.structure Definition RelConcreteQuiver V :=
+   { C of IsRelConcreteQuiver V C & Quiver V C & Concrete C }.
 Arguments rl {_ _ _ _}.
 
 #[short(type="t10concretequiver")]
@@ -116,13 +118,25 @@ Notation "X ⊗ Y" := (tensor X Y) (at level 29): cat_scope.
     (* #[canonical=no] el_unit : @unit T; *)
     #[canonical=no] el_tensor : forall {A B: T}, A -> B -> A ⊗ B;
   }.
+#[short(type="concretepremonoidalquiver")]
+  HB.structure Definition ConcretePreMonoidalQuiver V :=
+  { C of IsConcretePreMonoidal C & ObjConcreteQuiver V C & PreMonoidalQuiver V C }.
+Arguments el_tensor {_ _ _ _}.
+
+#[short(type="funconcretepremonoidalquiver")]
+  HB.structure Definition FunConcretePreMonoidalQuiver V :=
+  { C of IsConcretePreMonoidal C & FunConcreteQuiver V C & PreMonoidalQuiver V C }.
+
+#[short(type="relconcretepremonoidalquiver")]
+  HB.structure Definition RelConcretePreMonoidalQuiver V :=
+  { C of IsConcretePreMonoidal C & RelConcreteQuiver V C & PreMonoidalQuiver V C }.
+
 #[short(type="t10concretepremonoidalquiver")]
   HB.structure Definition T10ConcretePreMonoidalQuiver V :=
   { C of IsConcretePreMonoidal C & T10ConcreteQuiver V C & PreMonoidalQuiver V C }.
-Arguments el_tensor {_ _ _ _}.
 
 (** precategories: quivers + id and comp *)
-#[primitive] HB.mixin Record IsPreCat W (V: t10concretepremonoidalquiver W) C of FunConcreteQuiver V C := {
+#[primitive] HB.mixin Record IsPreCat W (V: funconcretepremonoidalquiver W) C of ObjConcreteQuiver V C := {
   #[canonical=no] idmap : forall {a : C}, a ~> a;
   #[canonical=no] comp_ : forall {a b c : C}, (a ~> b) ⊗ (b ~> c) ~> (a ~> c);
 }.
@@ -132,8 +146,8 @@ Arguments idmap {_ _ _}.
 Arguments comp_ {_ _ _ _ _ _}.
 
 Bind Scope cat_scope with precat.
-Definition comp {W} {V: t10concretepremonoidalquiver W} {C: precat V}
-  {a b c: C} (f: a ~> b) (g: b ~> c): a ~> c :=
+Definition comp {W} {V: funconcretepremonoidalquiver W} {C: precat V}
+    {a b c: C} (f: a ~> b) (g: b ~> c): a ~> c :=
   comp_ (el_tensor f g). 
 
 Notation "\idmap A" := (@idmap _ _ _ A) (only parsing, at level 0) : cat_scope.
@@ -154,7 +168,7 @@ Notation "F ^$" := (@Fhom _ _ _ _ F _ _)
 Notation "F <$> f" := (@Fhom _ _ _ _ F _ _ f)
                         (at level 58, format "F  <$>  f", right associativity) : cat_scope.
 
-Check fun W (V: t10concretepremonoidalquiver W) (C D : precat V) =>
+Check fun W (V: funconcretepremonoidalquiver W) (C D : precat V) =>
         fun (a: D) (f: a ~> a) => Quiver.sort (elts D).
 
 (** functor: prefunctor + laws *)
