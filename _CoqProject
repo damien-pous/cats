@@ -1,9 +1,3 @@
--native-compiler no
-# -arg -w -arg -undo-batch-mode
-#-arg -w -arg -deprecated-from-Coq
--arg -w -arg +HB.no-new-instance
-#-arg -w -arg -cast-in-pattern
-#-type-in-type
 
 -R theories/ Cats
 

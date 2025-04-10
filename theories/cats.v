@@ -23,6 +23,8 @@ Reserved Notation "a ↠_ C b" (at level 99, C at level 0).
 Reserved Notation "a ⥲ b" (at level 99, b at level 200, format "a  ⥲  b").
 Reserved Notation "a ⥲_ C b" (at level 99, C at level 0).
 
+Reserved Notation "F ⋅ f" (at level 35, right associativity). 
+
 Reserved Notation "f ∘ g" (at level 40, left associativity). 
 Reserved Notation "f ∘[ C ] g" (at level 40).
 
@@ -89,12 +91,12 @@ HB.structure Definition T10ConcreteQuiver V :=
 
 (* HB.instance Definition _ V := IsConcrete.Build (quiver V) (@Quiver.sort V). *)
 
-HB.instance Definition _ := IsConcrete.Build Type id.
+(* HB.instance Definition _ := IsConcrete.Build Type id. *)
 
-Definition elts (Q: Type) := Q.
+(* Definition elts (Q: Type) := Q. *)
 
-HB.instance Definition _ V (Q: funconcretequiver V) :=
-  IsQuiver.Build Type (elts Q) (fun x y: Q => x ~> y).
+(* HB.instance Definition _ V (Q: funconcretequiver V) := *)
+(*   IsQuiver.Build Type (elts Q) (fun x y: Q => x ~> y). *)
 
 HB.instance Definition _ W (V: relconcretequiver W) (v : V) :=
   IsQuiver.Build Type v (fun f g : v => { e: v ~> v & rl e f g}).
@@ -136,71 +138,92 @@ Arguments el_tensor {_ _ _ _}.
   { C of IsConcretePreMonoidal C & T10ConcreteQuiver V C & PreMonoidalQuiver V C }.
 
 (** precategories: quivers + id and comp *)
-#[primitive] HB.mixin Record IsPreCat W (V: funconcretepremonoidalquiver W) C of ObjConcreteQuiver V C := {
-  #[canonical=no] idmap : forall {a : C}, a ~> a;
-  #[canonical=no] comp_ : forall {a b c : C}, (a ~> b) ⊗ (b ~> c) ~> (a ~> c);
+#[primitive] HB.mixin Record IsPreCat
+  (W: concrete) (V: concretepremonoidalquiver W) C of Quiver V C := {
+  #[canonical=no] idmap : forall {a : C}, a ~>_C a;
+  #[canonical=no] comp_ : forall {a b c : C}, (b ~>_C c) ⊗ (a ~>_C b) ~>_V (a ~>_C c);
 }.
 #[short(type="precat")]
   HB.structure Definition PreCat W V := { C of IsPreCat W V C & }.
-Arguments idmap {_ _ _}.
+Arguments idmap {_ _ _ _}.
 Arguments comp_ {_ _ _ _ _ _}.
-
+Notation "1" := idmap: cat_scope.
+Notation "1_ A" := (@idmap _ _ _ A) (only parsing, at level 0) : cat_scope.
 Bind Scope cat_scope with precat.
-Definition comp {W} {V: funconcretepremonoidalquiver W} {C: precat V}
-    {a b c: C} (f: a ~> b) (g: b ~> c): a ~> c :=
-  comp_ (el_tensor f g). 
 
-Notation "\idmap A" := (@idmap _ _ _ A) (only parsing, at level 0) : cat_scope.
-Notation "f ∘ g" := (comp g f) : cat_scope.
-Notation "f ∘[ C ] g" := (@comp _ _ C _ _ _ g f) (only parsing): cat_scope.
-Notation "f \; g" := (comp f g) (only parsing): cat_scope.
+#[primitive] HB.mixin Record HasInv
+  (W: concrete) (V: quiver W) C of Quiver V C := {
+  #[canonical=no] inv : forall {a b : C}, (a ~>_C b) ~>_V (b ~>_C a);
+}.
+#[short(type="setoid")]
+  HB.structure Definition Setoid W V := { C of IsPreCat W V C & HasInv W V C }.
+Arguments inv {_ _ _ _ _}.
+Notation "f '⁻¹'" := (inv f) (at level 9, format "f '⁻¹'"): cat_scope.
+Bind Scope cat_scope with setoid.
+
+
+Definition comp {W: concrete} {V: funconcretepremonoidalquiver W} {C: precat V}
+    {a b c: C} (g: b ~> c) (f: a ~> b): a ~> c :=
+  comp_ (el_tensor g f). 
+Definition is_comp {W: concrete} {V: relconcretepremonoidalquiver W} {C: precat V}
+    {a b c: C} (g: b ~> c) (f: a ~> b) (h: a ~> c): Type :=
+  rl comp_ (el_tensor g f) h. 
+
+Notation "g ∘ f" := (comp g f) : cat_scope.
+Notation "g ∘[ C ] f" := (@comp _ _ C _ _ _ g f) (only parsing): cat_scope.
 
 (** prefunctor: a functor without laws *)
-HB.mixin Record IsPreFunctor W (V: funconcretequiver W) (C D : quiver V) (F : C -> D) := {
-   #[canonical=no] Fhom : forall (a b : C), (a ~> b) ~> (F a ~> F b)
+HB.mixin Record IsPreFunctor (W: concrete) (V: objconcretequiver W) 
+  (C D: quiver V) (F : C -> D) := {
+    #[canonical=no] Fhom : forall (a b : C), (a ~> b) ~>_V (F a ~> F b)
   }.
 #[short(type="prefunctor")]
-HB.structure Definition PreFunctor W (V: funconcretequiver W) (C D : quiver V) :=
+HB.structure Definition PreFunctor (W: concrete) (V: objconcretequiver W) (C D : quiver V) :=
   { F of IsPreFunctor W V C D F }.
+Arguments Fhom {_ _ _ _} _ {_ _}. 
+Notation "F ⋅ f" := (@Fhom _ _ _ _ F _ _ f) : cat_scope.
 
-Notation "F ^$" := (@Fhom _ _ _ _ F _ _)
-   (at level 1, format "F ^$") : cat_scope.
-Notation "F <$> f" := (@Fhom _ _ _ _ F _ _ f)
-                        (at level 58, format "F  <$>  f", right associativity) : cat_scope.
-
-Check fun W (V: funconcretepremonoidalquiver W) (C D : precat V) =>
-        fun (a: D) (f: a ~> a) => Quiver.sort (elts D).
+(* Check fun W (V: funconcretepremonoidalquiver W) (C D : precat V) => *)
+(*         fun (a: D) (f: a ~> a) => Quiver.sort (elts D). *)
 
 (** functor: prefunctor + laws *)
-HB.mixin Record PreFunctor_IsFunctor W (V: t10concretepremonoidalquiver W) (C D : precat V)
+HB.mixin Record PreFunctor_IsFunctor
+  W (V: t10concretepremonoidalquiver W) (C D: precat V)
   F of @PreFunctor W V C D F := {
     #[canonical=no] F1 : forall (a : C),
-      (F <$> \idmap a) ~> \idmap (F a);
-    #[canonical=no] Fcomp : forall (a b c : C) (f : a ~> b) (g : b ~> c),
-      (F <$> (f \; g)) ~> (F <$> f \; F <$> g);
+      (F ⋅ 1_a) ~> 1_(F a);
+    #[canonical=no] Fcomp : forall (a b c : C) (g : b ~> c) (f : a ~> b),
+      (F ⋅ (g ∘ f)) ~> (F⋅g ∘ F⋅f);
 }.
 #[short(type="Functor")]
 HB.structure Definition functor W (V: t10concretepremonoidalquiver W) (C D : precat V) :=
   { F of PreFunctor_IsFunctor W V C D F & }.
 
 (** categories: precategories + laws *)
-(* TODO: continue from here *)
-HB.mixin Record IsCat C of precat C := {
-  #[canonical=no] comp1o : forall (a b : C) (f : a ~> b), idmap \; f ≡ f;
-  #[canonical=no] compo1 : forall (a b : C) (f : a ~> b), f \; idmap ≡ f;
-  #[canonical=no] compoA : forall (a b c d : C) (f : a ~> b) (g : b ~> c) (h : c ~> d), f \; (g \; h) ≡ (f \; g) \; h;
-  #[canonical=no] compoE : forall (a b c : C), Proper (eqv ==> eqv ==> eqv) (@comp C a b c);
+HB.mixin Record IsCat (W: concrete) (V: t10concretepremonoidalquiver W) C of PreCat W V C := {
+  #[canonical=no] comp1o : forall (a b : C) (f : a ~> b), 1 ∘ f ~> f;
+  #[canonical=no] compo1 : forall (a b : C) (f : a ~> b), f ∘ 1 ~> f;
+  #[canonical=no] compoA : forall (a b c d : C) (h : c ~> d) (g : b ~> c) (f : a ~> b), h ∘ (g ∘ f) ~> (h ∘ g) ∘ f;
 }.
 #[short(type="Cat")]
-HB.structure Definition cat := { C of IsCat C & }.
-
+HB.structure Definition cat W V := { C of @IsCat W V C & }.
 Bind Scope cat_scope with Cat.
-Arguments compo1 {_ _ _}.
-Arguments comp1o {_ _ _}.
-Arguments compoA {_ _ _ _ _}.
-Arguments compoE {_ _ _ _}.
-Existing Instance compoE.
+Arguments compo1 {_ _ _ _ _}.
+Arguments comp1o {_ _ _ _ _}.
+Arguments compoA {_ _ _ _ _ _ _}.
 
+(** groupoids: setoid + laws *)
+HB.mixin Record InverseLaws (W: concrete) (V: t10concretepremonoidalquiver W) C of Setoid W V C := {
+  #[canonical=no] compVo : forall (a b : C) (f : a ~> b), f⁻¹ ∘ f ~> 1;
+  #[canonical=no] compoV : forall (a b : C) (f : a ~> b), f ∘ f⁻¹ ~> 1;
+}.
+#[short(type="groupoid")]
+HB.structure Definition Groupoid W V := { C of IsCat W V C & InverseLaws W V C }.
+Bind Scope cat_scope with Groupoid.
+Arguments compVo {_ _ _ _ _}.
+Arguments compoV {_ _ _ _ _}.
+
+(* CONTINUE FROM HERE *)
 
 (** duality: opposite category *)
 Definition catop (C : Type) : Type := C.
