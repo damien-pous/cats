@@ -205,9 +205,9 @@ HB.mixin Record IsCat (W: concrete) (V: t10concretepremonoidalquiver W) C of Pre
   #[canonical=no] compo1 : forall (a b : C) (f : a ~> b), f ∘ 1 ~> f;
   #[canonical=no] compoA : forall (a b c d : C) (h : c ~> d) (g : b ~> c) (f : a ~> b), h ∘ (g ∘ f) ~> (h ∘ g) ∘ f;
 }.
-#[short(type="Cat")]
-HB.structure Definition cat W V := { C of @IsCat W V C & }.
-Bind Scope cat_scope with Cat.
+#[short(type="cat")]
+HB.structure Definition Cat W V := { C of @IsCat W V C & }.
+Bind Scope cat_scope with cat.
 Arguments compo1 {_ _ _ _ _}.
 Arguments comp1o {_ _ _ _ _}.
 Arguments compoA {_ _ _ _ _ _ _}.
@@ -223,6 +223,103 @@ Bind Scope cat_scope with Groupoid.
 Arguments compVo {_ _ _ _ _}.
 Arguments compoV {_ _ _ _ _}.
 
+Module Import A.
+  (* the terminal groupoid, with a single object and a single morphism *)
+HB.instance Definition _ := IsConcrete.Build unit (fun _ => unit).
+HB.instance Definition _ := IsPreMonoidal.Build unit (fun _ _ => tt).
+HB.instance Definition _ := IsQuiver.Build unit unit (fun _ _ => tt).
+HB.instance Definition _ := IsRelConcreteQuiver.Build unit unit (fun _ _ _ _ _ => tt).
+HB.instance Definition _ := IsFunConcreteQuiver.Build unit unit (fun _ _ _ _ => tt).
+HB.instance Definition _ := IsConcretePreMonoidal.Build unit (fun _ _ _ _ => tt).
+HB.instance Definition _ := IsPreCat.Build unit unit unit (fun _ => tt) (fun _ _ _ => tt).
+HB.instance Definition _ := HasInv.Build unit unit unit (fun _ _ => tt).
+HB.instance Definition _ := IsCat.Build unit unit unit
+                              (fun _ _ _ => existT _ tt tt)
+                              (fun _ _ _ => existT _ tt tt)
+                              (fun _ _ _ _ _ _ _ => existT _ tt tt).
+HB.instance Definition _ := InverseLaws.Build unit unit unit
+                              (fun _ _ _ => existT _ tt tt)
+                              (fun _ _ _ => existT _ tt tt).
+End A.
+
+(* A MESS FROM HERE... *)
+
+Module B.
+  HB.mixin Record IsPointed T := {pt: T}.
+  #[short(type="pointed")]
+  HB.structure Definition Pointed := {T of IsPointed T}.
+  Section s.
+    Variable T: pointed.
+    HB.instance Definition _ := IsConcrete.Build unit (fun _ => unit).
+    HB.instance Definition _ := IsPreMonoidal.Build unit (fun _ _ => tt).
+    HB.instance Definition _ := IsQuiver.Build T unit (fun _ _ => pt).
+    (* HB.instance Definition _ := IsRelConcreteQuiver.Build T unit (fun _ _ _ _ _ => pt). *)
+    (* HB.instance Definition _ := IsFunConcreteQuiver.Build T unit (fun _ _ _ _ => pt). *)
+    (* HB.instance Definition _ := IsConcretePreMonoidal.Build unit (fun _ _ _ _ => tt). *)
+    (* HB.instance Definition _ := IsPreCat.Build unit unit unit (fun _ => tt) (fun _ _ _ => tt). *)
+    (* HB.instance Definition _ := HasInv.Build unit unit unit (fun _ _ => tt). *)
+    (* HB.instance Definition _ := IsCat.Build unit unit unit *)
+    (*                           (fun _ _ _ => existT _ tt tt) *)
+    (*                           (fun _ _ _ => existT _ tt tt) *)
+    (*                           (fun _ _ _ _ _ _ _ => existT _ tt tt). *)
+    (* HB.instance Definition _ := InverseLaws.Build unit unit unit *)
+    (*                           (fun _ _ _ => existT _ tt tt) *)
+    (*                           (fun _ _ _ => existT _ tt tt). *)
+  End s.
+End B.
+
+Definition contrType := Type.
+HB.instance Definition _ := IsConcrete.Build contrType (fun p => p).
+HB.instance Definition _ := IsQuiver.Build unit contrType (fun _ _ => tt).
+HB.instance Definition _ := IsPreMonoidal.Build contrType prod.
+HB.instance Definition _ := IsConcretePreMonoidal.Build contrType (fun A B a b => (a,b)).
+HB.instance Definition _ := IsPreCat.Build unit unit contrType (fun _ => tt) (fun _ _ _ => tt).
+HB.instance Definition _ := IsCat.Build unit unit contrType
+                              (fun _ _ _ => existT _ tt tt)
+                              (fun _ _ _ => existT _ tt tt)
+                              (fun _ _ _ _ _ _ _ => existT _ tt tt).
+
+Definition fType := Type.
+HB.instance Definition _ := IsConcrete.Build fType (fun p => p).
+HB.instance Definition _ := IsPreMonoidal.Build fType prod.
+HB.instance Definition _ := IsQuiver.Build fType fType (fun a b => a -> b).
+HB.instance Definition _ := IsConcretePreMonoidal.Build fType (fun A B a b => (a,b)).
+
+Check fType: concretepremonoidalquiver _. 
+Definition discrete (T: Type) := T.
+HB.instance Definition _ T := IsQuiver.Build fType (discrete T) (@eq T).
+Program Definition _adad T := IsPreCat.Build fType fType (discrete T) _ _.
+Next Obligation.
+  intros. exact: eq_refl.
+Qed.
+Next Obligation.
+  intros. cbn. 
+Admitted.
+HB.instance Definition _ T := _adad T.
+
+
+
+HB.instance Definition _ := IsConcrete.Build Type (fun p => p).
+HB.instance Definition _ := IsQuiver.Build Type Type (fun a b => a -> b).
+HB.instance Definition _ := IsFunConcreteQuiver.Build Type Type (fun a b f => f).
+HB.instance Definition _ := IsRelConcreteQuiver.Build Type Type (fun a b f x y => f x = y).
+HB.instance Definition _ := IsPreMonoidal.Build Type prod.
+HB.instance Definition _ := IsConcretePreMonoidal.Build Type (fun A B a b => (a,b)).
+HB.instance Definition _ := IsPreCat.Build _ _ Type (fun A a => a) (fun A B C gf x => gf.1 (gf.2 x)).
+Program Definition _type_cat := IsCat.Build _ _ Type _ _.
+Next Obligation.
+  move=>a b f. cbn. 
+Abort.
+
+Definition StrictCat := cat Type.
+
+Goal forall C: StrictCat, forall a b: C, forall f g: el (a ~> b), forall E: f ~> g, True.
+Proof.
+  intros.
+  cbn in E. 
+Abort.
+
+                                           
 (* CONTINUE FROM HERE *)
 
 (** duality: opposite category *)
